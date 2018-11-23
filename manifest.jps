@@ -21,33 +21,52 @@ nodes:
   - nodeType: nginxphp
     count: 1
     cloudlets: 8
+    nodeGroup: cp
 
   - nodeType: mysql5
     count: 1
     cloudlets: 8
+    nodeGroup: sqldb
   
 onInstall:
   - script: "${baseUrl}/scripts/idna.js"
   
 actions:
   installWp:
-    - cmd[sqldb]: |-
-        mysql -uroot -p${nodes.sqldb.password} -e "CREATE DATABASE IF NOT EXISTS wordpress;"
-        mysql -uroot -p${nodes.sqldb.password} -e "CREATE USER '${globals.DB_USER}'@'%' IDENTIFIED BY '${globals.DB_PASS}'; GRANT ALL ON wordpress.* TO '${globals.DB_USER}'@'%'; FLUSH PRIVILEGES;"
 
+
+  setupDB:
+    - cmd[sqldb]: |-
+        wget ${baseUrl}/configs/mysql/mysql.cnf -O /etc/mysql/conf.d/mysql.cnf
+        wget https://raw.githubusercontent.com/jelastic-jps/mysql-cluster/master/scripts/setupUser.sh -O ~/setupUser.sh &>> /var/log/run.log
+        bash ~/setupUser.sh ${globals.DB_USER} ${globals.DB_PASS} &>> /var/log/run.log
+        mysql -u${globals.DB_USER} -p${globals.DB_PASS} -e "CREATE DATABASE IF NOT EXISTS wordpress;"
+      user: root
+
+  deployWP:
     - deploy:
         archive: https://wordpress.org/latest.tar.gz
         name: WordPress-latest.tar.gz
         context: ROOT
 
+  installWP-CLI:
     - cmd[nginxphp]: curl -fsSL 'https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar' -o /usr/local/bin/wp && chmod +x /usr/local/bin/wp
       user: root
 
+  setupWP:
     - cmd[nginxphp]: |-
         wp core config --dbhost=${nodes.sqldb.address} --dbname=wordpress --dbuser=${globals.DB_USER} --dbpass=${globals.DB_PASS} --path=${SERVER_WEBROOT}/ROOT
         wp --allow-root core install --title='' --admin_user=admin --admin_password=${globals.ADMIN_PASSWD} --url=${this.idnaHost} --admin_email=${user.email} --path=${SERVER_WEBROOT}/ROOT
         wget ${baseUrl}/configs/wp-jelastic.php -O ${SERVER_WEBROOT}/ROOT/wp-jelastic.php
         sed -i "s/.*'wp-settings.php';.*/require_once ABSPATH . 'wp-jelastic.php';\n&/" ${SERVER_WEBROOT}/ROOT/wp-config.php
+
+  setupCP:
+    - cmd[nginxphp]: |-
+        wget ${baseUrl}/configs/nginx.conf -O /etc/nginx/nginx.conf
+        wget ${baseUrl}/configs/proxy_cache.conf -O /etc/nginx/conf.d/proxy_cache.conf
+        wget ${baseUrl}/configs/fastcgi_cache.conf -O /etc/nginx/conf.d/fastcgi_cache.conf
+        wget ${baseUrl}/configs/servers.conf -O /etc/nginx/conf.d/servers.conf
+        sudo /etc/init.d/nginx restart
 
 success: 'Below you will find your admin panel link, username and password.</br></br>
     <table style=''font-size:13px; border: none;''><tr><td>Admin panel URL:</td><td
