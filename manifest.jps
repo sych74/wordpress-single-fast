@@ -22,6 +22,7 @@ nodes:
     count: 1
     cloudlets: 8
     nodeGroup: cp
+    links: sqldb:DB
 
   - nodeType: mysql5
     count: 1
@@ -33,7 +34,11 @@ onInstall:
   
 actions:
   installWp:
-
+    - setupDB
+    - setupCP
+    - installWP-CLI
+    - deployWP
+    - setupWP
 
   setupDB:
     - cmd[sqldb]: |-
@@ -55,7 +60,7 @@ actions:
 
   setupWP:
     - cmd[nginxphp]: |-
-        wp core config --dbhost=${nodes.sqldb.address} --dbname=wordpress --dbuser=${globals.DB_USER} --dbpass=${globals.DB_PASS} --path=${SERVER_WEBROOT}/ROOT
+        wp core config --dbhost=DB_1 --dbname=wordpress --dbuser=${globals.DB_USER} --dbpass=${globals.DB_PASS} --path=${SERVER_WEBROOT}/ROOT
         wp --allow-root core install --title='' --admin_user=admin --admin_password=${globals.ADMIN_PASSWD} --url=${this.idnaHost} --admin_email=${user.email} --path=${SERVER_WEBROOT}/ROOT
         wget ${baseUrl}/configs/wp-jelastic.php -O ${SERVER_WEBROOT}/ROOT/wp-jelastic.php
         sed -i "s/.*'wp-settings.php';.*/require_once ABSPATH . 'wp-jelastic.php';\n&/" ${SERVER_WEBROOT}/ROOT/wp-config.php
