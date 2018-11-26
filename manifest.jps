@@ -30,15 +30,13 @@ nodes:
     nodeGroup: sqldb
   
 onInstall:
-  - script: "${baseUrl}/scripts/idna.js"
+  - setupDB
+  - setupCP
+  - installWP-CLI
+  - deployWP
+  - setupWP
   
 actions:
-  installWp:
-    - setupDB
-    - setupCP
-    - installWP-CLI
-    - deployWP
-    - setupWP
 
   setupDB:
     - cmd[sqldb]: |-
@@ -61,18 +59,18 @@ actions:
   setupWP:
     - cmd[nginxphp]: |-
         wp core config --dbhost=DB_1 --dbname=wordpress --dbuser=${globals.DB_USER} --dbpass=${globals.DB_PASS} --path=${SERVER_WEBROOT}/ROOT
-        wp --allow-root core install --title='' --admin_user=admin --admin_password=${globals.ADMIN_PASSWD} --url=${this.idnaHost} --admin_email=${user.email} --path=${SERVER_WEBROOT}/ROOT
+        wp --allow-root core install --title='' --admin_user=admin --admin_password=${globals.ADMIN_PASSWD} --url=${env.domain} --admin_email=${user.email} --path=${SERVER_WEBROOT}/ROOT
         wget ${baseUrl}/configs/wp-jelastic.php -O ${SERVER_WEBROOT}/ROOT/wp-jelastic.php
         sed -i "s/.*'wp-settings.php';.*/require_once ABSPATH . 'wp-jelastic.php';\n&/" ${SERVER_WEBROOT}/ROOT/wp-config.php
 
   setupCP:
     - cmd[nginxphp]: |-
         mkdir -p /etc/nginx/conf.d/locations
-        wget ${baseUrl}/configs/locations.conf -O /etc/nginx/conf.d/locations/locations.conf
-        wget ${baseUrl}/configs/nginx.conf -O /etc/nginx/nginx.conf
-        wget ${baseUrl}/configs/proxy_cache.conf -O /etc/nginx/conf.d/proxy_cache.conf
-        wget ${baseUrl}/configs/fastcgi_cache.conf -O /etc/nginx/conf.d/fastcgi_cache.conf
-        wget ${baseUrl}/configs/servers.conf -O /etc/nginx/conf.d/servers.conf
+        wget ${baseUrl}/configs/nginx/locations.conf -O /etc/nginx/conf.d/locations/locations.conf
+        wget ${baseUrl}/configs/nginx/nginx.conf -O /etc/nginx/nginx.conf
+        wget ${baseUrl}/configs/nginx/proxy_cache.conf -O /etc/nginx/conf.d/proxy_cache.conf
+        wget ${baseUrl}/configs/nginx/fastcgi_cache.conf -O /etc/nginx/conf.d/fastcgi_cache.conf
+        wget ${baseUrl}/configs/nginx/servers.conf -O /etc/nginx/conf.d/servers.conf
         sudo /etc/init.d/nginx restart
 
 success: 'Below you will find your admin panel link, username and password.</br></br>
