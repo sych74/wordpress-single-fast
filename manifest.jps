@@ -67,6 +67,8 @@ actions:
 
   setupCP:
     - cmd[nginxphp]: |-
+        mkdir -p /etc/nginx/conf.d/locations
+        wget ${baseUrl}/configs/locations.conf -O /etc/nginx/conf.d/locations/locations.conf
         wget ${baseUrl}/configs/nginx.conf -O /etc/nginx/nginx.conf
         wget ${baseUrl}/configs/proxy_cache.conf -O /etc/nginx/conf.d/proxy_cache.conf
         wget ${baseUrl}/configs/fastcgi_cache.conf -O /etc/nginx/conf.d/fastcgi_cache.conf
