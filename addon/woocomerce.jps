@@ -1,1 +1,2 @@
 wp plugin install wordpress-importer --activate --path=/var/www/webroot/ROOT/
+wp import /var/www/webroot/ROOT/wp-content/plugins/woocommerce/sample-data/sample_products.xml --path=/var/www/webroot/ROOT/ --authors=create
