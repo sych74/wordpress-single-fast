@@ -1,1 +1,1 @@
-update
+wp plugin install wordpress-importer --activate --path=/var/www/webroot/ROOT/
